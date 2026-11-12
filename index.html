@@ -1057,9 +1057,11 @@
         const uid = btn.dataset.uid;
         const memberName = currentList.members[uid]?.name || 'Unknown';
         try {
+          const newInviteCode = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
           await fs.updateDoc(fs.doc(db, 'lists', currentListId), {
             memberUids: fs.arrayRemove(uid),
             [`members.${uid}`]: fs.deleteField(),
+            inviteCode: newInviteCode,
           });
           showToast(`${memberName} removed`);
         } catch (err) {
