@@ -1345,8 +1345,7 @@
       // Build status filter bar in Total view
       if (showTotal && currentList.tracking) {
         const statusBar = document.getElementById('statusFilterBar');
-        if (statusBar && !statusBar._wired) {
-          statusBar._wired = true;
+        if (statusBar) {
           const cats = getCategories();
           statusBar.innerHTML = `<button class="status-filter-chip ${activeStatusFilter === 'all' ? 'active' : ''}" data-sf="all">All</button>` +
             cats.map(c =>
