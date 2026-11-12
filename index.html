@@ -139,30 +139,77 @@
   }
   .field input:focus { border-color: #7c3aed; }
   .field input::placeholder { color: #9ca3af; }
-  .slider-row { display: flex; align-items: center; gap: 14px; }
-  .slider-row input[type="range"] {
-    flex: 1;
-    height: 6px;
+  .slider-row { display: flex; align-items: center; gap: 16px; }
+  .slider-wrap { flex: 1; position: relative; height: 44px; display: flex; align-items: center; }
+  .slider-wrap input[type="range"] {
+    width: 100%;
+    height: 8px;
     -webkit-appearance: none;
     appearance: none;
-    background: #e5e7eb;
-    border-radius: 3px;
+    background: transparent;
     outline: none;
+    margin: 0;
+    position: relative;
+    z-index: 2;
   }
-  .slider-row input[type="range"]::-webkit-slider-thumb {
+  .slider-track {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .slider-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
+    transition: width 0.1s ease;
+  }
+  .slider-wrap input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: #7c3aed;
+    background: #fff;
+    border: 3px solid #7c3aed;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .slider-wrap input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+    box-shadow: 0 3px 12px rgba(124, 58, 237, 0.4);
+  }
+  .slider-wrap input[type="range"]::-moz-range-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #7c3aed;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
     cursor: pointer;
   }
+  .slider-wrap input[type="range"]::-moz-range-track {
+    background: transparent;
+    height: 8px;
+  }
   .slider-value {
-    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
     font-weight: 800;
-    color: #7c3aed;
-    min-width: 36px;
-    text-align: center;
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border-radius: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
   }
   .submit-btn {
     width: 100%;
@@ -515,7 +562,10 @@
         <div class="field">
           <label>Number of People</label>
           <div class="slider-row">
-            <input type="range" id="guestCount" min="1" max="10" value="1">
+            <div class="slider-wrap">
+              <div class="slider-track"><div class="slider-fill" id="sliderFill" style="width:0%"></div></div>
+              <input type="range" id="guestCount" min="1" max="10" value="1">
+            </div>
             <span class="slider-value" id="sliderVal">1</span>
           </div>
         </div>
@@ -544,7 +594,14 @@
     const sliderVal = document.getElementById('sliderVal');
     const addBtn = document.getElementById('addBtn');
 
-    countInput.addEventListener('input', () => { sliderVal.textContent = countInput.value; });
+    const sliderFill = document.getElementById('sliderFill');
+    function updateSlider() {
+      sliderVal.textContent = countInput.value;
+      const pct = ((countInput.value - 1) / 9) * 100;
+      sliderFill.style.width = pct + '%';
+    }
+    countInput.addEventListener('input', updateSlider);
+    updateSlider();
 
     addBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim();
@@ -562,7 +619,7 @@
         });
         nameInput.value = '';
         countInput.value = '1';
-        sliderVal.textContent = '1';
+        updateSlider();
         nameInput.focus();
         showToast('Guest added!');
       } catch (err) {
