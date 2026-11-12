@@ -231,10 +231,17 @@
   .field input[type="text"]:focus { border-color: #7c3aed; }
   .field input[type="text"]::placeholder { color: #9ca3af; }
   .slider-row { display: flex; align-items: center; gap: 16px; }
-  .slider-wrap { flex: 1; position: relative; height: 44px; display: flex; align-items: center; }
+  .slider-wrap {
+    flex: 1;
+    position: relative;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    touch-action: none;
+  }
   .slider-wrap input[type="range"] {
     width: 100%;
-    height: 8px;
+    height: 48px;
     -webkit-appearance: none;
     appearance: none;
     background: transparent;
@@ -242,42 +249,39 @@
     margin: 0;
     position: relative;
     z-index: 2;
+    cursor: pointer;
+    touch-action: none;
   }
   .slider-track {
     position: absolute;
     left: 0; right: 0;
     top: 50%;
     transform: translateY(-50%);
-    height: 8px;
-    border-radius: 4px;
+    height: 10px;
+    border-radius: 5px;
     background: #e5e7eb;
     overflow: hidden;
     z-index: 1;
+    pointer-events: none;
   }
   .slider-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 5px;
     background: linear-gradient(90deg, #7c3aed, #a855f7);
-    transition: width 0.1s ease;
   }
   .slider-wrap input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: #fff;
     border: 3px solid #7c3aed;
     box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .slider-wrap input[type="range"]::-webkit-slider-thumb:active {
-    transform: scale(1.15);
-    box-shadow: 0 3px 12px rgba(124, 58, 237, 0.4);
   }
   .slider-wrap input[type="range"]::-moz-range-thumb {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: #fff;
     border: 3px solid #7c3aed;
@@ -286,7 +290,7 @@
   }
   .slider-wrap input[type="range"]::-moz-range-track {
     background: transparent;
-    height: 8px;
+    height: 10px;
   }
   .slider-value {
     width: 48px;
@@ -339,6 +343,8 @@
     padding: 14px 16px;
     margin-bottom: 8px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .guest-card-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -346,19 +352,165 @@
   .guest-card .name { font-size: 17px; font-weight: 500; }
   .guest-card .people { font-size: 15px; color: #6b7280; }
   .guest-card .added-by { font-size: 12px; color: #9ca3af; }
-  .guest-card .delete-btn {
+  .guest-card .action-btn {
     background: none;
     border: none;
-    color: #ef4444;
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 4px 6px;
     border-radius: 8px;
   }
+  .guest-card .delete-btn { color: #ef4444; }
+  .guest-card .edit-btn { color: #7c3aed; }
+  .guest-actions { display: flex; gap: 2px; flex-shrink: 0; }
   .guest-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
   .guest-info .top-row { display: flex; align-items: center; gap: 12px; }
   .guest-info .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .empty { text-align: center; color: #9ca3af; font-size: 16px; padding: 32px 0; }
+
+  /* Status chips */
+  .status-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f3f4f6;
+  }
+  .status-chip {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .status-chip.off {
+    background: #f3f4f6;
+    color: #9ca3af;
+  }
+  .status-chip.inviteSent { background: #dbeafe; color: #1d4ed8; }
+  .status-chip.coming { background: #dcfce7; color: #15803d; }
+  .status-chip.notComing { background: #fee2e2; color: #dc2626; }
+  .status-chip.manageStay { background: #ffedd5; color: #c2410c; }
+  .status-chip.stayManaged { background: #ccfbf1; color: #0f766e; }
+
+  /* Inline edit form */
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  .edit-form .edit-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .edit-form input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: #1f2937;
+  }
+  .edit-form input[type="text"]:focus { border-color: #7c3aed; }
+  .edit-form input[type="number"] {
+    width: 64px;
+    padding: 10px 8px;
+    font-size: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    outline: none;
+    text-align: center;
+    background: #fff;
+    color: #1f2937;
+  }
+  .edit-form input[type="number"]:focus { border-color: #7c3aed; }
+  .edit-form .edit-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .edit-form .save-btn, .edit-form .cancel-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .edit-form .save-btn {
+    background: #7c3aed;
+    color: #fff;
+  }
+  .edit-form .cancel-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  /* Settings */
+  .settings-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+  }
+  .settings-card h3 { font-size: 18px; color: #4c1d95; margin-bottom: 16px; }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label-text { font-size: 16px; font-weight: 500; }
+  .setting-desc { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+
+  /* iOS-style toggle */
+  .toggle-switch {
+    position: relative;
+    width: 52px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #e5e7eb;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 26px;
+    height: 26px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.25s;
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background: #7c3aed;
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+  }
 
   /* Total view */
   .total-bar {
@@ -422,6 +574,24 @@
     border-color: #7c3aed;
   }
 
+  /* Search */
+  .search-bar {
+    margin-bottom: 12px;
+  }
+  .search-bar input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    outline: none;
+    background: #fff;
+    color: #1f2937;
+    transition: border-color 0.2s;
+  }
+  .search-bar input:focus { border-color: #7c3aed; }
+  .search-bar input::placeholder { color: #9ca3af; }
+
   /* Loading */
   .loading { text-align: center; color: #9ca3af; padding: 40px 0; font-size: 16px; }
 
@@ -480,6 +650,14 @@
   };
   const SDK = 'https://www.gstatic.com/firebasejs/13.0.0/';
 
+  const STATUS_DEFS = [
+    { key: 'inviteSent', label: 'Invite Sent' },
+    { key: 'coming', label: 'Coming' },
+    { key: 'notComing', label: 'Not Coming' },
+    { key: 'manageStay', label: 'Manage Stay' },
+    { key: 'stayManaged', label: 'Stay Managed' },
+  ];
+
   const [appMod, fsMod, authMod] = await Promise.all([
     import(SDK + 'firebase-app.js'),
     import(SDK + 'firebase-firestore.js'),
@@ -501,6 +679,7 @@
   let currentList = null;
   let currentTab = 'add';
   let activeFilter = 'all';
+  let editingGuestId = null;
   let unsubs = [];
 
   function cleanup() {
@@ -597,6 +776,7 @@
     currentList = null;
     currentTab = 'add';
     activeFilter = 'all';
+    editingGuestId = null;
     backBtn.classList.add('hidden');
     headerSub.textContent = 'Your lists';
     appEl.innerHTML = `
@@ -635,6 +815,7 @@
           memberUids: [user.uid],
           members: { [user.uid]: { name: user.displayName || user.email, email: user.email } },
           inviteCode,
+          tracking: false,
           createdAt: fs.serverTimestamp(),
         });
         showToast('List created!');
@@ -642,7 +823,6 @@
       };
     };
 
-    // Listen to lists where user is a member
     const q = fs.query(fs.collection(db, 'lists'), fs.where('memberUids', 'array-contains', user.uid));
     const u = fs.onSnapshot(q, snap => {
       const owned = [], shared = [];
@@ -700,6 +880,7 @@
     currentListId = listId;
     currentTab = 'add';
     activeFilter = 'all';
+    editingGuestId = null;
     backBtn.classList.remove('hidden');
 
     const u = fs.onSnapshot(fs.doc(db, 'lists', listId), snap => {
@@ -726,12 +907,32 @@
 
   function renderList() {
     if (currentTab === 'add') renderAddTab();
-    else renderTotalTab();
+    else if (currentTab === 'total') renderTotalTab();
+    else if (currentTab === 'settings') renderSettingsTab();
   }
 
   function switchTab(tab) {
     currentTab = tab;
+    editingGuestId = null;
     renderList();
+  }
+
+  function renderTabBar() {
+    const isOwner = currentList.ownerUid === user.uid;
+    return `
+      <div class="tab-bar">
+        <button class="tab-btn ${currentTab === 'add' ? 'active' : ''}" id="tabAdd">Add Guest</button>
+        <button class="tab-btn ${currentTab === 'total' ? 'active' : ''}" id="tabTotal">Total</button>
+        ${isOwner ? `<button class="tab-btn ${currentTab === 'settings' ? 'active' : ''}" id="tabSettings">Settings</button>` : ''}
+      </div>
+    `;
+  }
+
+  function wireTabBar() {
+    document.getElementById('tabAdd').onclick = () => switchTab('add');
+    document.getElementById('tabTotal').onclick = () => switchTab('total');
+    const tabSettings = document.getElementById('tabSettings');
+    if (tabSettings) tabSettings.onclick = () => switchTab('settings');
   }
 
   function renderMembers() {
@@ -776,13 +977,62 @@
     });
   }
 
+  // ── SETTINGS TAB (owner only) ──
+  function renderSettingsTab() {
+    headerSub.textContent = currentList.name;
+    const trackingOn = !!currentList.tracking;
+    appEl.innerHTML = `
+      ${renderTabBar()}
+      <div class="settings-card">
+        <h3>Settings</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label-text">Enable Tracking</div>
+            <div class="setting-desc">Show status chips on each guest (Invite Sent, Coming, etc.)</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="trackingToggle" ${trackingOn ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <button class="delete-list-btn" id="deleteListBtn">Delete This List</button>
+    `;
+
+    wireTabBar();
+
+    document.getElementById('trackingToggle').onchange = async (e) => {
+      try {
+        await fs.updateDoc(fs.doc(db, 'lists', currentListId), { tracking: e.target.checked });
+        showToast(e.target.checked ? 'Tracking enabled' : 'Tracking disabled');
+      } catch (err) {
+        showToast('Error updating setting');
+        e.target.checked = !e.target.checked;
+      }
+    };
+
+    document.getElementById('deleteListBtn').onclick = async () => {
+      if (!confirm('Delete this entire list and all its guests? This cannot be undone.')) return;
+      try {
+        const guestsSnap = await fs.getDocs(fs.collection(db, 'lists', currentListId, 'guests'));
+        const batch = fs.writeBatch(db);
+        guestsSnap.forEach(d => batch.delete(d.ref));
+        batch.delete(fs.doc(db, 'lists', currentListId));
+        await batch.commit();
+        showToast('List deleted');
+        openHome();
+      } catch (err) {
+        showToast('Error deleting list');
+        console.error(err);
+      }
+    };
+  }
+
+  // ── ADD TAB ──
   function renderAddTab() {
     headerSub.textContent = currentList.name;
     appEl.innerHTML = `
-      <div class="tab-bar">
-        <button class="tab-btn active" id="tabAdd">Add Guest</button>
-        <button class="tab-btn" id="tabTotal">Total</button>
-      </div>
+      ${renderTabBar()}
       ${renderMembers()}
       <div class="add-form">
         <h3>Add Guest</h3>
@@ -806,31 +1056,10 @@
         <h3>Guest List <span class="count" id="totalCount">0</span></h3>
         <div id="guestList"><div class="loading">Loading guests...</div></div>
       </div>
-      ${currentList.ownerUid === user.uid ? '<button class="delete-list-btn" id="deleteListBtn">Delete This List</button>' : ''}
     `;
 
-    document.getElementById('tabAdd').onclick = () => switchTab('add');
-    document.getElementById('tabTotal').onclick = () => switchTab('total');
+    wireTabBar();
     wireMembers();
-
-    const deleteListBtn = document.getElementById('deleteListBtn');
-    if (deleteListBtn) {
-      deleteListBtn.onclick = async () => {
-        if (!confirm('Delete this entire list and all its guests? This cannot be undone.')) return;
-        try {
-          const guestsSnap = await fs.getDocs(fs.collection(db, 'lists', currentListId, 'guests'));
-          const batch = fs.writeBatch(db);
-          guestsSnap.forEach(d => batch.delete(d.ref));
-          batch.delete(fs.doc(db, 'lists', currentListId));
-          await batch.commit();
-          showToast('List deleted');
-          openHome();
-        } catch (err) {
-          showToast('Error deleting list');
-          console.error(err);
-        }
-      };
-    }
 
     const nameInput = document.getElementById('guestName');
     const countInput = document.getElementById('guestCount');
@@ -874,32 +1103,31 @@
     listenGuests(false);
   }
 
+  // ── TOTAL TAB ──
   function renderTotalTab() {
     headerSub.textContent = currentList.name;
     appEl.innerHTML = `
-      <div class="tab-bar">
-        <button class="tab-btn" id="tabAdd">Add Guest</button>
-        <button class="tab-btn active" id="tabTotal">Total</button>
-      </div>
+      ${renderTabBar()}
       <div class="total-bar">
         <div class="number" id="grandTotal">-</div>
         <div class="label" id="totalLabel">Total People Invited</div>
       </div>
       <div class="filter-bar" id="filterBar"></div>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search guest name..." autocomplete="off">
+      </div>
       <div class="guest-section">
         <h3>All Guests <span class="count" id="totalCount">0</span></h3>
         <div id="guestList"><div class="loading">Loading...</div></div>
       </div>
     `;
 
-    document.getElementById('tabAdd').onclick = () => switchTab('add');
-    document.getElementById('tabTotal').onclick = () => switchTab('total');
-
+    wireTabBar();
     listenGuests(true);
   }
 
+  // ── GUEST LIST LISTENER ──
   function listenGuests(showTotal) {
-    // Remove previous guest listener if any (keep the list config listener)
     if (unsubs.length > 1) { unsubs.pop()(); }
 
     const q = fs.query(fs.collection(db, 'lists', currentListId, 'guests'), fs.orderBy('createdAt', 'desc'));
@@ -929,10 +1157,24 @@
         }
       }
 
+      if (showTotal) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput && !searchInput._wired) {
+          searchInput._wired = true;
+          searchInput.addEventListener('input', () => updateList());
+        }
+      }
+
       function updateList() {
-        const guests = activeFilter === 'all' || !showTotal
+        let guests = activeFilter === 'all' || !showTotal
           ? allGuests
           : allGuests.filter(g => g.addedBy === activeFilter);
+
+        if (showTotal) {
+          const searchInput = document.getElementById('searchInput');
+          const query = searchInput?.value.trim().toLowerCase();
+          if (query) guests = guests.filter(g => g.name.toLowerCase().includes(query));
+        }
 
         const total = guests.reduce((s, g) => s + g.count, 0);
         const totalCount = document.getElementById('totalCount');
@@ -957,22 +1199,109 @@
         }
 
         const isOwner = currentList.ownerUid === user.uid;
+        const trackingOn = !!currentList.tracking;
+        const listId = currentListId;
+
         guestList.innerHTML = guests.map(g => {
+          const canEdit = isOwner || g.addedBy === user.uid;
           const canDelete = isOwner || g.addedBy === user.uid;
+          const isEditing = editingGuestId === g.id;
+
+          if (isEditing) {
+            return `
+            <div class="guest-card">
+              <div class="edit-form">
+                <div class="edit-row">
+                  <input type="text" id="editName_${g.id}" value="${esc(g.name)}" placeholder="Guest name">
+                  <input type="number" id="editCount_${g.id}" value="${g.count}" min="1" max="10">
+                </div>
+                <div class="edit-actions">
+                  <button class="save-btn" data-id="${g.id}">Save</button>
+                  <button class="cancel-btn" data-id="${g.id}">Cancel</button>
+                </div>
+              </div>
+            </div>`;
+          }
+
+          let statusHtml = '';
+          if (trackingOn) {
+            const status = g.status || {};
+            statusHtml = `<div class="status-chips">` +
+              STATUS_DEFS.map(s => {
+                const on = !!status[s.key];
+                return `<button class="status-chip ${on ? s.key : 'off'}" data-gid="${g.id}" data-key="${s.key}" data-on="${on}">${s.label}</button>`;
+              }).join('') + `</div>`;
+          }
+
           return `
           <div class="guest-card">
-            <div class="guest-info">
-              <div class="top-row">
-                <span class="name">${esc(g.name)}</span>
-                <span class="people">${g.count} ${g.count === 1 ? 'person' : 'people'}</span>
+            <div class="guest-card-top">
+              <div class="guest-info">
+                <div class="top-row">
+                  <span class="name">${esc(g.name)}</span>
+                  <span class="people">${g.count} ${g.count === 1 ? 'person' : 'people'}</span>
+                </div>
+                <span class="added-by">Added by ${esc(g.addedByName || 'Unknown')}</span>
               </div>
-              <span class="added-by">Added by ${esc(g.addedByName || 'Unknown')}</span>
+              <div class="guest-actions">
+                ${canEdit ? `<button class="action-btn edit-btn" data-id="${g.id}" title="Edit">&#9998;</button>` : ''}
+                ${canDelete ? `<button class="action-btn delete-btn" data-id="${g.id}" title="Remove">&times;</button>` : ''}
+              </div>
             </div>
-            ${canDelete ? `<button class="delete-btn" data-id="${g.id}" title="Remove">&times;</button>` : ''}
+            ${statusHtml}
           </div>`;
         }).join('');
 
-        const listId = currentListId;
+        // Wire edit buttons
+        guestList.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            editingGuestId = btn.dataset.id;
+            updateList();
+          });
+        });
+
+        // Wire save/cancel for editing
+        guestList.querySelectorAll('.save-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const nameEl = document.getElementById(`editName_${id}`);
+            const countEl = document.getElementById(`editCount_${id}`);
+            const newName = nameEl?.value.trim();
+            const newCount = parseInt(countEl?.value) || 1;
+            if (!newName) { nameEl?.focus(); return; }
+            try {
+              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), { name: newName, count: newCount });
+              editingGuestId = null;
+              showToast('Guest updated');
+            } catch (err) {
+              showToast('Error updating guest');
+            }
+          });
+        });
+        guestList.querySelectorAll('.cancel-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            editingGuestId = null;
+            updateList();
+          });
+        });
+
+        // Wire status chips
+        guestList.querySelectorAll('.status-chip').forEach(chip => {
+          chip.addEventListener('click', async () => {
+            const gid = chip.dataset.gid;
+            const key = chip.dataset.key;
+            const wasOn = chip.dataset.on === 'true';
+            try {
+              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', gid), {
+                [`status.${key}`]: !wasOn,
+              });
+            } catch (err) {
+              showToast('Error updating status');
+            }
+          });
+        });
+
+        // Wire delete buttons
         guestList.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const id = btn.dataset.id;
