@@ -139,6 +139,31 @@
   }
   .field input:focus { border-color: #7c3aed; }
   .field input::placeholder { color: #9ca3af; }
+  .slider-row { display: flex; align-items: center; gap: 14px; }
+  .slider-row input[type="range"] {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 3px;
+    outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #7c3aed;
+    cursor: pointer;
+  }
+  .slider-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #7c3aed;
+    min-width: 36px;
+    text-align: center;
+  }
   .submit-btn {
     width: 100%;
     padding: 16px;
@@ -232,6 +257,33 @@
     border-color: transparent;
   }
 
+  /* Filter chips */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .filter-chip {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    background: #fff;
+    color: #6b7280;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .filter-chip.active {
+    background: #7c3aed;
+    color: #fff;
+    border-color: #7c3aed;
+  }
+
   /* Loading */
   .loading { text-align: center; color: #9ca3af; padding: 40px 0; font-size: 16px; }
 
@@ -248,8 +300,21 @@
     font-size: 15px;
     transition: transform 0.3s ease;
     z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast button {
+    background: none;
+    border: none;
+    color: #a78bfa;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -298,10 +363,17 @@
   let user = null;
   let config = null;
 
-  function showToast(msg) {
-    toast.textContent = msg;
+  let toastTimer = null;
+  function showToast(msg, action) {
+    clearTimeout(toastTimer);
+    toast.innerHTML = '<span></span>' + (action ? '<button type="button"></button>' : '');
+    toast.firstChild.textContent = msg;
+    if (action) {
+      toast.lastChild.textContent = action.label;
+      toast.lastChild.onclick = () => { clearTimeout(toastTimer); toast.classList.remove('show'); action.run(); };
+    }
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), action ? 5000 : 2000);
   }
 
   function esc(s) {
@@ -441,8 +513,11 @@
           <input type="text" id="guestName" placeholder="Enter name" autocomplete="off">
         </div>
         <div class="field">
-          <label for="guestCount">Number of People</label>
-          <input type="number" id="guestCount" placeholder="e.g. 4" min="1" value="" inputmode="numeric">
+          <label>Number of People</label>
+          <div class="slider-row">
+            <input type="range" id="guestCount" min="1" max="10" value="1">
+            <span class="slider-value" id="sliderVal">1</span>
+          </div>
         </div>
         <button class="submit-btn" id="addBtn">Add to List</button>
       </div>
@@ -466,13 +541,15 @@
 
     const nameInput = document.getElementById('guestName');
     const countInput = document.getElementById('guestCount');
+    const sliderVal = document.getElementById('sliderVal');
     const addBtn = document.getElementById('addBtn');
+
+    countInput.addEventListener('input', () => { sliderVal.textContent = countInput.value; });
 
     addBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim();
-      const count = parseInt(countInput.value) || 0;
+      const count = parseInt(countInput.value) || 1;
       if (!name) { nameInput.focus(); return; }
-      if (count < 1) { countInput.focus(); return; }
 
       addBtn.disabled = true;
       try {
@@ -484,7 +561,8 @@
           createdAt: fs.serverTimestamp(),
         });
         nameInput.value = '';
-        countInput.value = '';
+        countInput.value = '1';
+        sliderVal.textContent = '1';
         nameInput.focus();
         showToast('Guest added!');
       } catch (err) {
@@ -496,6 +574,8 @@
 
     listenGuests();
   }
+
+  let activeFilter = 'all';
 
   function renderTotal() {
     appEl.innerHTML = `
@@ -509,8 +589,9 @@
       </div>
       <div class="total-bar">
         <div class="number" id="grandTotal">-</div>
-        <div class="label">Total People Invited</div>
+        <div class="label" id="totalLabel">Total People Invited</div>
       </div>
+      <div class="filter-bar" id="filterBar"></div>
       <div class="guest-section">
         <h3>All Guests <span class="count" id="totalCount">0</span></h3>
         <div id="guestList"><div class="loading">Loading...</div></div>
@@ -528,50 +609,100 @@
     if (unsub) { unsub(); unsub = null; }
     const q = fs.query(fs.collection(db, 'invites'), fs.orderBy('createdAt', 'desc'));
     unsub = fs.onSnapshot(q, snap => {
-      const guests = [];
-      snap.forEach(d => guests.push({ id: d.id, ...d.data() }));
+      const allGuests = [];
+      snap.forEach(d => allGuests.push({ id: d.id, ...d.data() }));
 
-      const total = guests.reduce((s, g) => s + g.count, 0);
-      const totalCount = document.getElementById('totalCount');
-      if (totalCount) totalCount.textContent = `${guests.length} guests · ${total} people`;
-
+      // Build filter chips in Total view
       if (showTotal) {
-        const gt = document.getElementById('grandTotal');
-        if (gt) gt.textContent = total;
+        const filterBar = document.getElementById('filterBar');
+        if (filterBar) {
+          const adders = new Map();
+          allGuests.forEach(g => {
+            if (g.addedBy && !adders.has(g.addedBy)) {
+              adders.set(g.addedBy, g.addedByName || 'Unknown');
+            }
+          });
+          filterBar.innerHTML = `<button class="filter-chip ${activeFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>` +
+            [...adders.entries()].map(([uid, name]) =>
+              `<button class="filter-chip ${activeFilter === uid ? 'active' : ''}" data-filter="${uid}">${esc(name)}</button>`
+            ).join('');
+          filterBar.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.onclick = () => {
+              activeFilter = chip.dataset.filter;
+              filterBar.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+              chip.classList.add('active');
+              updateList();
+            };
+          });
+        }
       }
 
-      const guestList = document.getElementById('guestList');
-      if (!guestList) return;
+      function updateList() {
+        const guests = activeFilter === 'all' || !showTotal
+          ? allGuests
+          : allGuests.filter(g => g.addedBy === activeFilter);
 
-      if (guests.length === 0) {
-        guestList.innerHTML = '<div class="empty">No guests added yet</div>';
-        return;
-      }
+        const total = guests.reduce((s, g) => s + g.count, 0);
+        const totalCount = document.getElementById('totalCount');
+        if (totalCount) totalCount.textContent = `${guests.length} guests · ${total} people`;
 
-      guestList.innerHTML = guests.map(g => `
-        <div class="guest-card">
-          <div class="guest-info">
-            <div class="top-row">
-              <span class="name">${esc(g.name)}</span>
-              <span class="people">${g.count} ${g.count === 1 ? 'person' : 'people'}</span>
-            </div>
-            <span class="added-by">Added by ${esc(g.addedByName || 'Unknown')}</span>
-          </div>
-          <button class="delete-btn" data-id="${g.id}" title="Remove">&times;</button>
-        </div>
-      `).join('');
-
-      guestList.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('Remove this guest?')) return;
-          try {
-            await fs.deleteDoc(fs.doc(db, 'invites', btn.dataset.id));
-            showToast('Guest removed');
-          } catch (err) {
-            showToast('Error removing guest');
+        if (showTotal) {
+          const gt = document.getElementById('grandTotal');
+          if (gt) gt.textContent = total;
+          const label = document.getElementById('totalLabel');
+          if (label) {
+            const filterName = activeFilter === 'all' ? null : allGuests.find(g => g.addedBy === activeFilter)?.addedByName;
+            label.textContent = filterName ? `Added by ${filterName}` : 'Total People Invited';
           }
+        }
+
+        const guestList = document.getElementById('guestList');
+        if (!guestList) return;
+
+        if (guests.length === 0) {
+          guestList.innerHTML = '<div class="empty">No guests added yet</div>';
+          return;
+        }
+
+        guestList.innerHTML = guests.map(g => `
+          <div class="guest-card">
+            <div class="guest-info">
+              <div class="top-row">
+                <span class="name">${esc(g.name)}</span>
+                <span class="people">${g.count} ${g.count === 1 ? 'person' : 'people'}</span>
+              </div>
+              <span class="added-by">Added by ${esc(g.addedByName || 'Unknown')}</span>
+            </div>
+            <button class="delete-btn" data-id="${g.id}" title="Remove">&times;</button>
+          </div>
+        `).join('');
+
+        guestList.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const guest = guests.find(g => g.id === id);
+            if (!guest) return;
+            try {
+              await fs.deleteDoc(fs.doc(db, 'invites', id));
+              showToast('Guest removed', {
+                label: 'Undo',
+                run: async () => {
+                  try {
+                    const { id: _, ...data } = guest;
+                    await fs.setDoc(fs.doc(db, 'invites', id), data);
+                  } catch (err) {
+                    showToast('Error restoring guest');
+                  }
+                }
+              });
+            } catch (err) {
+              showToast('Error removing guest');
+            }
+          });
         });
-      });
+      }
+
+      updateList();
     });
   }
 </script>
