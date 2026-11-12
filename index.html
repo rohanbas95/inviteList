@@ -39,7 +39,19 @@
     height: 36px;
     border-radius: 10px;
     cursor: pointer;
-    display: none;
+  }
+  .back-btn.hidden { display: none; }
+  .delete-list-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    background: #fff;
+    color: #ef4444;
+    border: 2px solid #fecaca;
+    border-radius: 12px;
+    cursor: pointer;
   }
 
   /* Sign in */
@@ -446,7 +458,7 @@
 <body>
 
 <header>
-  <button class="back-btn" id="backBtn">&#8592;</button>
+  <button class="back-btn hidden" id="backBtn">&#8592;</button>
   <h1>Invite List</h1>
   <p id="headerSub"></p>
 </header>
@@ -557,7 +569,7 @@
   }
 
   function renderSignIn() {
-    backBtn.style.display = 'none';
+    backBtn.classList.add('hidden');
     headerSub.textContent = '';
     appEl.innerHTML = `
       <div class="sign-in">
@@ -585,7 +597,7 @@
     currentList = null;
     currentTab = 'add';
     activeFilter = 'all';
-    backBtn.style.display = 'none';
+    backBtn.classList.add('hidden');
     headerSub.textContent = 'Your lists';
     appEl.innerHTML = `
       <div class="user-bar">
@@ -688,7 +700,7 @@
     currentListId = listId;
     currentTab = 'add';
     activeFilter = 'all';
-    backBtn.style.display = '';
+    backBtn.classList.remove('hidden');
 
     const u = fs.onSnapshot(fs.doc(db, 'lists', listId), snap => {
       if (!snap.exists()) {
@@ -794,11 +806,31 @@
         <h3>Guest List <span class="count" id="totalCount">0</span></h3>
         <div id="guestList"><div class="loading">Loading guests...</div></div>
       </div>
+      ${currentList.ownerUid === user.uid ? '<button class="delete-list-btn" id="deleteListBtn">Delete This List</button>' : ''}
     `;
 
     document.getElementById('tabAdd').onclick = () => switchTab('add');
     document.getElementById('tabTotal').onclick = () => switchTab('total');
     wireMembers();
+
+    const deleteListBtn = document.getElementById('deleteListBtn');
+    if (deleteListBtn) {
+      deleteListBtn.onclick = async () => {
+        if (!confirm('Delete this entire list and all its guests? This cannot be undone.')) return;
+        try {
+          const guestsSnap = await fs.getDocs(fs.collection(db, 'lists', currentListId, 'guests'));
+          const batch = fs.writeBatch(db);
+          guestsSnap.forEach(d => batch.delete(d.ref));
+          batch.delete(fs.doc(db, 'lists', currentListId));
+          await batch.commit();
+          showToast('List deleted');
+          openHome();
+        } catch (err) {
+          showToast('Error deleting list');
+          console.error(err);
+        }
+      };
+    }
 
     const nameInput = document.getElementById('guestName');
     const countInput = document.getElementById('guestCount');
