@@ -129,6 +129,13 @@
     font-weight: 500;
   }
 
+  .user-bar .bar-actions { display: flex; align-items: center; gap: 14px; }
+  .user-bar .guide-icon-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #ede9fe; color: #7c3aed; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+
   /* Home — list cards */
   .section-title {
     font-size: 13px;
@@ -934,7 +941,10 @@
     appEl.innerHTML = `
       <div class="user-bar">
         <span><span class="user-name">${esc(user.displayName || user.email)}</span></span>
-        <button id="signOutBtn">Sign out</button>
+        <div class="bar-actions">
+          <button class="guide-icon-btn" id="homeGuideBtn" title="Show guide" aria-label="Show guide">?</button>
+          <button id="signOutBtn">Sign out</button>
+        </div>
       </div>
       <div id="listsContainer"><div class="loading">Loading lists...</div></div>
       <button class="create-btn" id="createBtn">+ Create New List</button>
@@ -942,6 +952,7 @@
     `;
 
     document.getElementById('signOutBtn').onclick = () => authMod.signOut(auth);
+    document.getElementById('homeGuideBtn').onclick = showGuide;
 
     document.getElementById('createBtn').onclick = () => {
       const area = document.getElementById('createArea');
@@ -1170,7 +1181,7 @@
   const GUIDE_STEPS = [
     { icon: '👋', title: 'Welcome to Invite List', html: `
       <p>Keep track of everyone you're inviting, who invited them, and how many people are coming — together with family or co-hosts.</p>
-      <p>This quick guide covers every feature. You can reopen it anytime from <b>Settings → Show Guide</b>.</p>` },
+      <p>This quick guide covers every feature. You can reopen it anytime with the <b>?</b> button on the home screen.</p>` },
     { icon: '📋', title: 'Your lists', html: `
       <ul>
         <li><b>Create a list</b> from the home screen, e.g. "Wedding Reception". You become its owner.</li>
@@ -1294,14 +1305,12 @@
           <button id="addCatBtn">Add</button>
         </div>
       </div>
-      <button class="submit-btn" id="guideBtn" style="margin-top:16px">Show Guide</button>
-      <button class="submit-btn" id="exportBtn" style="margin-top:12px">Export as CSV</button>
+      <button class="submit-btn" id="exportBtn" style="margin-top:16px">Export as CSV</button>
       <button class="delete-list-btn" id="deleteListBtn">Delete This List</button>
     `;
 
     wireTabBar();
     wireMembers();
-    document.getElementById('guideBtn').onclick = showGuide;
 
     document.getElementById('trackingToggle').onchange = async (e) => {
       try {
