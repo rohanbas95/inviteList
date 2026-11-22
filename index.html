@@ -54,6 +54,35 @@
     cursor: pointer;
   }
 
+  /* Guide */
+  .guide-overlay {
+    position: fixed; inset: 0; background: rgba(17,24,39,0.6);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; z-index: 1000;
+  }
+  .guide-modal {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 440px;
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
+  .guide-body { padding: 28px 24px 8px; overflow-y: auto; text-align: center; }
+  .guide-icon { font-size: 44px; margin-bottom: 10px; }
+  .guide-body h2 { font-size: 21px; color: #4c1d95; margin-bottom: 10px; }
+  .guide-body p { font-size: 15px; color: #4b5563; line-height: 1.5; margin-bottom: 10px; }
+  .guide-body ul { text-align: left; font-size: 15px; color: #4b5563; line-height: 1.5; padding-left: 20px; margin-bottom: 10px; }
+  .guide-body li { margin-bottom: 6px; }
+  .guide-dots { display: flex; justify-content: center; gap: 6px; padding: 10px 0 4px; }
+  .guide-dots span { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }
+  .guide-dots span.active { background: #7c3aed; }
+  .guide-actions { display: flex; align-items: center; gap: 8px; padding: 12px 20px 20px; }
+  .guide-actions .spacer { flex: 1; }
+  .guide-actions button {
+    padding: 11px 18px; font-size: 15px; font-weight: 600; border-radius: 12px; border: none; cursor: pointer;
+  }
+  .guide-actions .g-primary { background: #7c3aed; color: #fff; }
+  .guide-actions .g-secondary { background: #f3f4f6; color: #374151; }
+  .guide-actions .g-skip { background: none; color: #9ca3af; padding: 11px 6px; }
+
   /* Sign in */
   .sign-in {
     text-align: center;
@@ -834,6 +863,7 @@
   authMod.onAuthStateChanged(auth, u => {
     user = u;
     if (user) {
+      maybeShowGuide();
       const joinId = new URLSearchParams(location.search).get('join');
       if (joinId) {
         handleJoin(joinId);
@@ -1135,6 +1165,98 @@
     });
   }
 
+  // ── GUIDE ──
+  const GUIDE_KEY = 'inviteGuideSeen';
+  const GUIDE_STEPS = [
+    { icon: '👋', title: 'Welcome to Invite List', html: `
+      <p>Keep track of everyone you're inviting, who invited them, and how many people are coming — together with family or co-hosts.</p>
+      <p>This quick guide covers every feature. You can reopen it anytime from <b>Settings → Show Guide</b>.</p>` },
+    { icon: '📋', title: 'Your lists', html: `
+      <ul>
+        <li><b>Create a list</b> from the home screen, e.g. "Wedding Reception". You become its owner.</li>
+        <li>Tap a list to open it. Use the <b>←</b> button in the header to go back to all your lists.</li>
+        <li>You can have several lists, and see every list you own or have joined.</li>
+      </ul>` },
+    { icon: '➕', title: 'Add Guest', html: `
+      <ul>
+        <li>Enter the <b>guest name</b> and use the slider for the <b>number of people</b> (1–10) in that invite.</li>
+        <li><b>Whose Side</b> says who the guest belongs to. It starts on you, but pick someone else when you're adding on their behalf.</li>
+        <li>Tap <b>Add to List</b>. Each guest also records who actually entered them.</li>
+      </ul>` },
+    { icon: '👥', title: 'Guest List', html: `
+      <ul>
+        <li>See the <b>total people invited</b> at the top, plus every guest with their side and who added them.</li>
+        <li>Use the <b>side chips</b> to filter by person, e.g. "Priya's side", and the total updates to match.</li>
+        <li>Use <b>search</b> to find a guest by name.</li>
+        <li>Tap the <b>pencil</b> to edit name, count or side. Tap the <b>×</b> to delete, and use <b>Undo</b> if it was a mistake.</li>
+      </ul>
+      <p>Only the list owner and the person who added a guest can edit or delete that guest.</p>` },
+    { icon: '🔗', title: 'Members & sharing', html: `
+      <p>Found in <b>Settings</b> (owner only).</p>
+      <ul>
+        <li><b>Share Invite Link</b> copies a link. Anyone who opens it and signs in joins the list and can add guests.</li>
+        <li><b>Add person by name</b> adds someone who doesn't need an account. They just appear in the "Whose Side" dropdown, which is handy for sorting guests when you're keeping the list yourself.</li>
+        <li>The <b>×</b> next to a member removes them. Removing a real member also resets the invite link.</li>
+      </ul>` },
+    { icon: '✅', title: 'Tracking statuses', html: `
+      <ul>
+        <li>In <b>Settings</b>, turn on <b>Enable Tracking</b> to show status chips on each guest, such as Invite Sent, Coming, Not Coming, Manage Stay and Stay Managed.</li>
+        <li>Add, rename or remove your own <b>status categories</b>.</li>
+        <li>On the Guest List tab, tap a chip on a guest to toggle it, and use the status filter to see who's left, e.g. "No Status".</li>
+      </ul>` },
+    { icon: '⚙️', title: 'Export & delete', html: `
+      <ul>
+        <li><b>Export as CSV</b> downloads the whole list (name, people, added by and statuses) for Excel or Sheets.</li>
+        <li><b>Delete This List</b> permanently removes the list and all its guests. It can't be undone.</li>
+      </ul>
+      <p>That's it, you're ready to go! 🎉</p>` },
+  ];
+
+  function showGuide() {
+    if (document.getElementById('guideOverlay')) return;
+    let i = 0;
+    const overlay = document.createElement('div');
+    overlay.className = 'guide-overlay';
+    overlay.id = 'guideOverlay';
+    document.body.appendChild(overlay);
+
+    function close() {
+      try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) {}
+      overlay.remove();
+    }
+    function render() {
+      const st = GUIDE_STEPS[i];
+      const last = i === GUIDE_STEPS.length - 1;
+      overlay.innerHTML = `
+        <div class="guide-modal" role="dialog" aria-modal="true">
+          <div class="guide-body">
+            <div class="guide-icon">${st.icon}</div>
+            <h2>${st.title}</h2>
+            ${st.html}
+          </div>
+          <div class="guide-dots">${GUIDE_STEPS.map((_, n) => `<span class="${n === i ? 'active' : ''}"></span>`).join('')}</div>
+          <div class="guide-actions">
+            ${last ? '' : '<button class="g-skip" id="guideSkip">Skip</button>'}
+            <span class="spacer"></span>
+            ${i > 0 ? '<button class="g-secondary" id="guideBack">Back</button>' : ''}
+            <button class="g-primary" id="guideNext">${last ? 'Got it' : 'Next'}</button>
+          </div>
+        </div>`;
+      document.getElementById('guideNext').onclick = () => { if (last) close(); else { i++; render(); } };
+      const back = document.getElementById('guideBack');
+      if (back) back.onclick = () => { i--; render(); };
+      const skip = document.getElementById('guideSkip');
+      if (skip) skip.onclick = close;
+    }
+    render();
+  }
+
+  function maybeShowGuide() {
+    let seen = false;
+    try { seen = !!localStorage.getItem(GUIDE_KEY); } catch (e) {}
+    if (!seen) showGuide();
+  }
+
   // ── SETTINGS TAB (owner only) ──
   function renderSettingsTab() {
     headerSub.textContent = currentList.name;
@@ -1172,12 +1294,14 @@
           <button id="addCatBtn">Add</button>
         </div>
       </div>
-      <button class="submit-btn" id="exportBtn" style="margin-top:16px">Export as CSV</button>
+      <button class="submit-btn" id="guideBtn" style="margin-top:16px">Show Guide</button>
+      <button class="submit-btn" id="exportBtn" style="margin-top:12px">Export as CSV</button>
       <button class="delete-list-btn" id="deleteListBtn">Delete This List</button>
     `;
 
     wireTabBar();
     wireMembers();
+    document.getElementById('guideBtn').onclick = showGuide;
 
     document.getElementById('trackingToggle').onchange = async (e) => {
       try {
