@@ -229,6 +229,17 @@
     color: #1f2937;
   }
   .field input[type="text"]:focus { border-color: #7c3aed; }
+  .field select {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    outline: none;
+    background: #fff;
+    color: #1f2937;
+  }
+  .field select:focus { border-color: #7c3aed; }
   .field input[type="text"]::placeholder { color: #9ca3af; }
   .slider-row { display: flex; align-items: center; gap: 16px; }
   .slider-wrap {
@@ -434,6 +445,26 @@
     color: #1f2937;
   }
   .edit-form input[type="number"]:focus { border-color: #7c3aed; }
+  .edit-form select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: #1f2937;
+  }
+  .add-member-row { display: flex; gap: 8px; margin-top: 10px; }
+  .add-member-row input {
+    flex: 1; min-width: 0; padding: 10px 12px; font-size: 16px;
+    border: 2px solid #e5e7eb; border-radius: 10px; outline: none; background: #fff; color: #1f2937;
+  }
+  .add-member-row input:focus { border-color: #7c3aed; }
+  .add-member-row button {
+    padding: 10px 14px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px;
+    background: #7c3aed; color: #fff; cursor: pointer;
+  }
   .edit-form .edit-actions {
     display: flex;
     gap: 8px;
@@ -1032,12 +1063,17 @@
     const members = currentList.members || {};
     let html = `<div class="members-card"><h3>Members</h3>`;
     for (const [uid, m] of Object.entries(members)) {
-      const badge = uid === currentList.ownerUid ? '<span class="badge">Owner</span>' : '';
+      const badge = uid === currentList.ownerUid ? '<span class="badge">Owner</span>'
+        : m.local ? '<span class="badge">Name only</span>' : '';
       const removeBtn = isOwner && uid !== currentList.ownerUid
         ? `<button class="remove-member" data-uid="${uid}" title="Remove member">&times;</button>` : '';
       html += `<div class="member-row"><span class="member-info">${esc(m.name)} ${badge}</span>${removeBtn}</div>`;
     }
     if (isOwner) {
+      html += `<div class="add-member-row">
+        <input type="text" id="newMemberName" placeholder="Add person by name (no login)" autocomplete="off">
+        <button id="addMemberBtn">Add</button>
+      </div>`;
       html += `<button class="share-btn" id="shareBtn">Share Invite Link</button>`;
     }
     html += `</div>`;
@@ -1052,11 +1088,39 @@
         navigator.clipboard.writeText(url).then(() => showToast('Invite link copied!'));
       };
     }
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    const newMemberName = document.getElementById('newMemberName');
+    if (addMemberBtn && newMemberName) {
+      const addLocalMember = async () => {
+        const name = newMemberName.value.trim();
+        if (!name) { newMemberName.focus(); return; }
+        addMemberBtn.disabled = true;
+        try {
+          const key = 'local_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+          await fs.updateDoc(fs.doc(db, 'lists', currentListId), {
+            [`members.${key}`]: { name, local: true },
+          });
+          showToast(`${name} added`);
+        } catch (err) {
+          showToast('Error adding member');
+          console.error(err);
+        }
+        addMemberBtn.disabled = false;
+      };
+      addMemberBtn.onclick = addLocalMember;
+      newMemberName.addEventListener('keydown', e => { if (e.key === 'Enter') addLocalMember(); });
+    }
     document.querySelectorAll('.remove-member').forEach(btn => {
       btn.onclick = async () => {
         const uid = btn.dataset.uid;
         const memberName = currentList.members[uid]?.name || 'Unknown';
         try {
+          if (currentList.members[uid]?.local) {
+            // Name-only member: never logged in, so no invite code rotation needed
+            await fs.updateDoc(fs.doc(db, 'lists', currentListId), { [`members.${uid}`]: fs.deleteField() });
+            showToast(`${memberName} removed`);
+            return;
+          }
           const newInviteCode = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
           await fs.updateDoc(fs.doc(db, 'lists', currentListId), {
             memberUids: fs.arrayRemove(uid),
@@ -1204,6 +1268,19 @@
     };
   }
 
+  // <option> list of members for the "Whose Side" dropdowns
+  function sideOptionsHtml(selectedUid, fallbackName) {
+    const members = currentList.members || {};
+    let html = Object.entries(members).map(([uid, m]) =>
+      `<option value="${esc(uid)}" ${uid === selectedUid ? 'selected' : ''}>${esc(m.name || m.email || 'Unknown')}${uid === user.uid ? ' (me)' : ''}</option>`
+    ).join('');
+    if (selectedUid && !members[selectedUid]) {
+      // side member was removed later; keep the stored name selectable
+      html += `<option value="${esc(selectedUid)}" selected>${esc(fallbackName || 'Unknown')}</option>`;
+    }
+    return html;
+  }
+
   // ── ADD TAB ──
   function renderAddTab() {
     headerSub.textContent = currentList.name;
@@ -1215,6 +1292,12 @@
         <div class="field">
           <label for="guestName">Guest Name</label>
           <input type="text" id="guestName" placeholder="Enter name" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="guestSide">Whose Side</label>
+          <select id="guestSide">
+            ${sideOptionsHtml(user.uid)}
+          </select>
         </div>
         <div class="field">
           <label>Number of People</label>
@@ -1242,6 +1325,7 @@
     const sliderVal = document.getElementById('sliderVal');
     const sliderFill = document.getElementById('sliderFill');
     const addBtn = document.getElementById('addBtn');
+    const sideSelect = document.getElementById('guestSide');
 
     function updateSlider() {
       sliderVal.textContent = countInput.value;
@@ -1254,6 +1338,9 @@
       const name = nameInput.value.trim();
       const count = parseInt(countInput.value) || 1;
       if (!name) { nameInput.focus(); return; }
+      const sideUid = sideSelect.value || user.uid;
+      const sideMember = currentList.members?.[sideUid];
+      const sideName = sideMember?.name || sideMember?.email || user.displayName || user.email;
 
       addBtn.disabled = true;
       try {
@@ -1262,6 +1349,8 @@
           count,
           addedBy: user.uid,
           addedByName: user.displayName || user.email,
+          sideUid,
+          sideName,
           createdAt: fs.serverTimestamp(),
         });
         nameInput.value = '';
@@ -1317,7 +1406,8 @@
         if (filterBar) {
           const adders = new Map();
           allGuests.forEach(g => {
-            if (g.addedBy && !adders.has(g.addedBy)) adders.set(g.addedBy, g.addedByName || 'Unknown');
+            const sUid = g.sideUid || g.addedBy;
+            if (sUid && !adders.has(sUid)) adders.set(sUid, g.sideName || g.addedByName || 'Unknown');
           });
           filterBar.innerHTML = `<button class="filter-chip ${activeFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>` +
             [...adders.entries()].map(([uid, name]) =>
@@ -1366,7 +1456,7 @@
       function updateList() {
         let guests = activeFilter === 'all' || !showTotal
           ? allGuests
-          : allGuests.filter(g => g.addedBy === activeFilter);
+          : allGuests.filter(g => (g.sideUid || g.addedBy) === activeFilter);
 
         if (showTotal) {
           const searchInput = document.getElementById('searchInput');
@@ -1396,8 +1486,9 @@
           if (gt) gt.textContent = total;
           const label = document.getElementById('totalLabel');
           if (label) {
-            const filterName = activeFilter === 'all' ? null : allGuests.find(g => g.addedBy === activeFilter)?.addedByName;
-            label.textContent = filterName ? `Added by ${filterName}` : 'Total People Invited';
+            const filterName = activeFilter === 'all' ? null : allGuests.find(g => (g.sideUid || g.addedBy) === activeFilter)?.sideName
+              || (activeFilter === 'all' ? null : allGuests.find(g => g.addedBy === activeFilter)?.addedByName);
+            label.textContent = filterName ? `${filterName}'s side` : 'Total People Invited';
           }
         }
 
@@ -1426,6 +1517,7 @@
                   <input type="text" id="editName_${g.id}" value="${esc(g.name)}" placeholder="Guest name">
                   <input type="number" id="editCount_${g.id}" value="${g.count}" min="1" max="10">
                 </div>
+                <select id="editSide_${g.id}">${sideOptionsHtml(g.sideUid || g.addedBy, g.sideName || g.addedByName)}</select>
                 <div class="edit-actions">
                   <button class="save-btn" data-id="${g.id}">Save</button>
                   <button class="cancel-btn" data-id="${g.id}">Cancel</button>
@@ -1453,7 +1545,7 @@
                   <span class="name">${esc(g.name)}</span>
                   <span class="people">${g.count} ${g.count === 1 ? 'person' : 'people'}</span>
                 </div>
-                <span class="added-by">Added by ${esc(g.addedByName || 'Unknown')}</span>
+                <span class="added-by">${g.sideName ? `${esc(g.sideName)}'s side · ` : ''}Added by ${esc(g.addedByName || 'Unknown')}</span>
               </div>
               <div class="guest-actions">
                 ${canEdit ? `<button class="action-btn edit-btn" data-id="${g.id}" title="Edit">&#9998;</button>` : ''}
@@ -1481,8 +1573,16 @@
             const newName = nameEl?.value.trim();
             const newCount = parseInt(countEl?.value) || 1;
             if (!newName) { nameEl?.focus(); return; }
+            const sideEl = document.getElementById(`editSide_${id}`);
+            const update = { name: newName, count: newCount };
+            if (sideEl?.value) {
+              const m = currentList.members?.[sideEl.value];
+              const existing = guests.find(g => g.id === id);
+              update.sideUid = sideEl.value;
+              update.sideName = m ? (m.name || m.email) : (existing?.sideName || existing?.addedByName || 'Unknown');
+            }
             try {
-              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), { name: newName, count: newCount });
+              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), update);
               editingGuestId = null;
               showToast('Guest updated');
             } catch (err) {
