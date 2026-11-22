@@ -1582,9 +1582,13 @@
               update.sideName = m ? (m.name || m.email) : (existing?.sideName || existing?.addedByName || 'Unknown');
             }
             try {
-              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), update);
+              // Close the edit box and show the new values right away; Firestore's
+              // snapshot then re-renders with the same data.
               editingGuestId = null;
+              const local = guests.find(g => g.id === id);
+              if (local) Object.assign(local, update);
               updateList();
+              await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), update);
               showToast('Guest updated');
             } catch (err) {
               showToast('Error updating guest');
