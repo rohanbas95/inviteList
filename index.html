@@ -1584,6 +1584,7 @@
             try {
               await fs.updateDoc(fs.doc(db, 'lists', listId, 'guests', id), update);
               editingGuestId = null;
+              updateList();
               showToast('Guest updated');
             } catch (err) {
               showToast('Error updating guest');
